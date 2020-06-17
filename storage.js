@@ -7,42 +7,47 @@ const localUrl = "mongodb://localhost:27017/";
 const onlineurl = "mongodb+srv://oroszlanolo:asdqwe123@storage-nuak1.mongodb.net/<Storage>?retryWrites=true&w=majority";
 const url = onlineurl;
 const validateUrl = "http://apollo.xannosz.cloud:8000/validate"
-const access = "testPrivilege";
-const token = "a18cda27-b31e-4588-9778-bf10c282de6d-b78b83e4-6ecb-47e7-8048-decbcdfa5fae-42cea846-e5fe-45d0-b734-b5d70ab9dd7f-5318fbc9-5575-4653-873f-43039188262f-ebef998e-2a25-4a73-b727-5ecc35c1e5dc-327420f9-323b-4fa0-9b27-de65244c6489-bfd46016-108e-4deb-9efb-eb159b395ba0-bdfd3f6a-71da-47d2-9a6d-7b281ce40db9-9c61547c-19ed-46ec-b9bf-f896c304be83";
+
 const validating = true;
+const accessUser = "user";
+const accessAdmin = "admin";
 
 
 http.createServer(function (req, res) {
     // console.log(req);
-    var parsed = urlparse.parse(req.url, true);
-    var q = parsed.query;
-    switch (parsed.pathname) {
-        case "/getStorage":
-            getStorage(res, q);
-            break;
-        case "/getComm":
-            getComm(res, q);
-            break;
-        case "/getEmpty":
-            getEmpty(res, q);
-            break;
-        case "/useComm":
-            useComm(res, q);
-            break;
-        case "/refill":
-            refill(res, q);
-            break;
-        default:
-            res.writeHead(404, {
-                'Content-Type': 'text/html'
-            });
-            res.write("404: Page not found");
+    try {
+        var parsed = urlparse.parse(req.url, true);
+        var q = parsed.query;
+        switch (parsed.pathname) {
+            case "/getStorage":
+                getStorage(res, q);
+                break;
+            case "/getComm":
+                getComm(res, q);
+                break;
+            case "/getEmpty":
+                getEmpty(res, q);
+                break;
+            case "/useComm":
+                useComm(res, q);
+                break;
+            case "/refill":
+                refill(res, q);
+                break;
+            default:
+                res.writeHead(404, {
+                    'Content-Type': 'text/html'
+                });
+                res.write("404: Page not found");
+        }
+    } catch (error) {
+        console.log(error);
     }
 }).listen(8080);
 
 function getComm(res, params) {
     console.log("requested commodity: " + params.name);
-    validate(params.token, params.access).then(result => {
+    validate(params.token, accessUser).then(result => {
         if (result) {
             var query = {
                 name: params.name
@@ -73,7 +78,11 @@ function getComm(res, params) {
 }
 
 function useComm(res, params) {
-    validate(params.token, params.access).then(result => {
+    if (!params.name || !params.quant || params.quant <= 0) {
+        res.write("Invalid parameters.");
+        return res.end();
+    }
+    validate(params.token, accessUser).then(result => {
         if (result) {
             console.log("requested commodity: " + params.name);
             var query = {
@@ -121,7 +130,11 @@ function useComm(res, params) {
 }
 
 function refill(res, params) {
-    validate(params.token, params.access).then(result => {
+    if (!params.name || !params.quant || params.quant <= 0) {
+        res.write("Invalid parameters.");
+        return res.end();
+    }
+    validate(params.token, accessAdmin).then(result => {
         if (result) {
             var refills = JSON.parse(params.refill).refill;
             // console.log(refills[0]);
@@ -172,7 +185,7 @@ function refillItem(res, item) {
 }
 
 function getStorage(res, params) {
-    validate(params.token, params.access).then(result => {
+    validate(params.token, accessUser).then(result => {
         if (result) {
             console.log("requested storage");
             var query = {};
@@ -202,7 +215,7 @@ function getStorage(res, params) {
 }
 
 function getEmpty(res, params) {
-    validate(params.token, params.access).then(result => {
+    validate(params.token, accessUser).then(result => {
         if (result) {
             console.log("requested empty");
             var query = {
@@ -234,13 +247,11 @@ function getEmpty(res, params) {
 }
 
 async function validate(tok, acc) {
-    if (!tok)
-        tok = token;
-    if (!acc)
-        acc = access;
     if (!validating) {
         return true;
     }
+    if (!tok || !acc)
+        return false;
     try {
         const response = await axios.get(validateUrl + "?token=" + tok + "&access=" + acc);
         return (response.data == "Access Granted");
