@@ -43,7 +43,7 @@ http.createServer(function (req, res) {
     } catch (error) {
         console.log(error);
     }
-}).listen(8080);
+}).listen(8880);
 
 function getComm(res, params) {
     console.log("requested commodity: " + params.name);
@@ -130,10 +130,6 @@ function useComm(res, params) {
 }
 
 function refill(res, params) {
-    if (!params.name || !params.quant || params.quant <= 0) {
-        res.write("Invalid parameters.");
-        return res.end();
-    }
     validate(params.token, accessAdmin).then(result => {
         if (result) {
             var refills = JSON.parse(params.refill).refill;
@@ -176,7 +172,7 @@ function refillItem(res, item) {
                     if (err) throw err;
                 });
             } else {
-                res.write("could not find commodity with name: " + item.name);
+                //res.write("could not find commodity with name: " + item.name);
             }
             // }
             db.close();

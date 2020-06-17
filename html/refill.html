@@ -33,10 +33,12 @@ xmlhttp.onreadystatechange = function() {
   }
 };
 //{"refill":[{"name":"hamm","quant":5},{"name":"tomato","quant":3}]}
+//http://apollo.xannosz.cloud:8880/refill?refill={"refill":[{"name":"tomato","quant":2}]}
 const Http = new XMLHttpRequest();
-const useJson = '{"refill":[{"name":"' + document.getElementById("cName").value + '","quant":' + document.getElementById("cQuant").value + '}]}';
+const useJson = '{\"refill\":[{\"name\":\"' + document.getElementById("cName").value + '\",\"quant\":' + document.getElementById("cQuant").value + '}]}';
 const tokenText = 'token=' + getToken();
 const url='http://apollo.xannosz.cloud:8880/refill?refill=' + useJson + "&" + tokenText;
+console.log(url);
 xmlhttp.open("GET", url);
 xmlhttp.send();
 }
