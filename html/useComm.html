@@ -31,8 +31,9 @@ xmlhttp.onreadystatechange = function() {
 };
 //{"refill":[{"name":"hamm","quant":5},{"name":"tomato","quant":3}]}
 const Http = new XMLHttpRequest();
+const tokenText = 'token=' + getToken();
 const urlEnd = 'name=' + document.getElementById("cName").value + '&quant=' + document.getElementById("cQuant").value;
-const url='http://apollo.xannosz.cloud:8880/useComm?' + urlEnd;
+const url='http://apollo.xannosz.cloud:8880/useComm?' + urlEnd + "&" + tokenText;
 xmlhttp.open("GET", url);
 xmlhttp.send();
 }

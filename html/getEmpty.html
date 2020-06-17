@@ -31,7 +31,8 @@ xmlhttp.onreadystatechange = function() {
   }
 };
 const Http = new XMLHttpRequest();
-const url='http://apollo.xannosz.cloud:8880/getEmpty';
+const tokenText = 'token=' + getToken();
+const url='http://apollo.xannosz.cloud:8880/getEmpty?' + tokenText;
 xmlhttp.open("GET", url);
 xmlhttp.send();
 </script>

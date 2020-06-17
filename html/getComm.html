@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <html>
+<head>
+<script src="getToken.js"></script>
+</head>
 <body>
 
 <h2>Get quantity of an item</h2>
@@ -15,7 +18,6 @@
 <p id="demo"></p>
 
 <script>
-function myFunction(){
 var obj, dbParam, xmlhttp, myObj, x, txt = "";
 obj = { table: "customers", limit: 20 };
 dbParam = JSON.stringify(obj);
@@ -36,7 +38,9 @@ xmlhttp.onreadystatechange = function() {
   }
 };
 const Http = new XMLHttpRequest();
-const url='http://apollo.xannosz.cloud:8880/getComm?name=' + document.getElementById("cName").value;
+const tokenText = 'token=' + getToken();
+const nameText = 'name=' + document.getElementById("cName").value;
+const url='http://apollo.xannosz.cloud:8880/getComm?' + nameText + "&" + tokenText;
 xmlhttp.open("GET", url);
 xmlhttp.send();
 }
