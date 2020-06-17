@@ -5,24 +5,26 @@ var MongoClient = require('mongodb').MongoClient;
 var axios = require('axios');
 const localUrl = "mongodb://localhost:27017/";
 const onlineurl = "mongodb+srv://oroszlanolo:asdqwe123@storage-nuak1.mongodb.net/<Storage>?retryWrites=true&w=majority";
-var url = onlineurl;
-var validateUrl = "http://apollo.xannosz.cloud:8000/validate"
-var token = "944a024a-f67b-4932-89f4-c89310c5f512-5538e688-ca86-4dd1-8aa7-56ee1858fd42-aa72af1a-a89f-40fa-baea-052ef65a538e-6ccd3a39-f1d8-4cb8-ab98-9194c4d490f8-643b6c8b-a236-498c-ad66-0ae73c12ba75-1927cb6a-521a-4230-bab5-accdd6295f6e-43ac1140-4074-4c51-af19-33f538969e12-aabffc7f-0b14-4913-abfd-e7e57fb34c0a-60bc55cb-b144-4939-a240-d0c40f4abe29";
-const validating = false;
-//create a server object:
+const url = onlineurl;
+const validateUrl = "http://apollo.xannosz.cloud:8000/validate"
+const access = "testPrivilege";
+const token = "a18cda27-b31e-4588-9778-bf10c282de6d-b78b83e4-6ecb-47e7-8048-decbcdfa5fae-42cea846-e5fe-45d0-b734-b5d70ab9dd7f-5318fbc9-5575-4653-873f-43039188262f-ebef998e-2a25-4a73-b727-5ecc35c1e5dc-327420f9-323b-4fa0-9b27-de65244c6489-bfd46016-108e-4deb-9efb-eb159b395ba0-bdfd3f6a-71da-47d2-9a6d-7b281ce40db9-9c61547c-19ed-46ec-b9bf-f896c304be83";
+const validating = true;
+
+
 http.createServer(function (req, res) {
-    console.log(req);
+    // console.log(req);
     var parsed = urlparse.parse(req.url, true);
     var q = parsed.query;
     switch (parsed.pathname) {
         case "/getStorage":
-            getStorage(res);
+            getStorage(res, q);
             break;
         case "/getComm":
             getComm(res, q);
             break;
         case "/getEmpty":
-            getEmpty(res);
+            getEmpty(res, q);
             break;
         case "/useComm":
             useComm(res, q);
@@ -40,7 +42,7 @@ http.createServer(function (req, res) {
 
 function getComm(res, params) {
     console.log("requested commodity: " + params.name);
-    validate().then(result => {
+    validate(params.token, params.access).then(result => {
         if (result) {
             var query = {
                 name: params.name
@@ -71,54 +73,74 @@ function getComm(res, params) {
 }
 
 function useComm(res, params) {
-    console.log("requested commodity: " + params.name);
-    var query = {
-        name: params.name
-    };
-    var prevQuant;
-    MongoClient.connect(url, function (err, db) {
-        if (err) throw err;
-        var dbo = db.db("Storage");
-        dbo.collection("goods").findOne(query, function (err, result) {
-            if (err) throw err;
-            prevQuant = result.quant;
-            if (prevQuant < params.quant) {
-                res.writeHead(405, {
-                    'Content-Type': 'text/html'
-                });
-                res.write("405: Requested " + params.quant + " of " + params.name + ", but there is only " + prevQuant);
-                return res.end();
-            } else {
-                var newvalues = {
-                    $set: {
-                        quant: (prevQuant - params.quant)
-                    }
-                };
-                dbo.collection("goods").updateOne(query, newvalues, function (err, res) {
+    validate(params.token, params.access).then(result => {
+        if (result) {
+            console.log("requested commodity: " + params.name);
+            var query = {
+                name: params.name
+            };
+            var prevQuant;
+            MongoClient.connect(url, function (err, db) {
+                if (err) throw err;
+                var dbo = db.db("Storage");
+                dbo.collection("goods").findOne(query, function (err, result) {
                     if (err) throw err;
+                    prevQuant = result.quant;
+                    if (prevQuant < params.quant) {
+                        res.writeHead(405, {
+                            'Content-Type': 'text/html'
+                        });
+                        res.write("405: Requested " + params.quant + " of " + params.name + ", but there is only " + prevQuant);
+                        return res.end();
+                    } else {
+                        var newvalues = {
+                            $set: {
+                                quant: (prevQuant - params.quant)
+                            }
+                        };
+                        dbo.collection("goods").updateOne(query, newvalues, function (err, res) {
+                            if (err) throw err;
+                        });
+                        res.writeHead(200, {
+                            'Content-Type': 'text/html'
+                        });
+                        res.write(params.name + " updated, new quantity: " + (prevQuant - params.quant));
+                        res.end();
+                    }
+                    db.close();
                 });
-                res.writeHead(200, {
-                    'Content-Type': 'text/html'
-                });
-                res.write(params.name + " updated, new quantity: " + (prevQuant - params.quant));
-                res.end();
-            }
-            db.close();
-        });
+            });
+        } else {
+            res.writeHead(405, {
+                'Content-Type': 'text/html'
+            });
+            res.write("Invalid user token, try to log in!");
+            res.end();
+        }
     });
 }
 
 function refill(res, params) {
-    var refills = JSON.parse(params.refill).refill;
-    // console.log(refills[0]);
-    res.writeHead(200, {
-        'Content-Type': 'text/html'
+    validate(params.token, params.access).then(result => {
+        if (result) {
+            var refills = JSON.parse(params.refill).refill;
+            // console.log(refills[0]);
+            res.writeHead(200, {
+                'Content-Type': 'text/html'
+            });
+            for (item of refills) {
+                refillItem(res, item);
+            }
+            //{"refill":[{"name":"ham","quant":5},{"name":"tomato","quant":3}]}
+            res.end();
+        } else {
+            res.writeHead(405, {
+                'Content-Type': 'text/html'
+            });
+            res.write("Invalid user token, try to log in!");
+            res.end();
+        }
     });
-    for (item of refills) {
-        refillItem(res, item);
-    }
-    //{"refill":[{"name":"ham","quant":5},{"name":"tomato","quant":3}]}
-    res.end();
 }
 
 function refillItem(res, item) {
@@ -149,54 +171,78 @@ function refillItem(res, item) {
     });
 }
 
-function getStorage(res) {
-    console.log("requested storage");
-    var query = {};
-    MongoClient.connect(url, function (err, db) {
-        if (err) throw err;
-        var dbo = db.db("Storage");
-        dbo.collection("goods").find(query).toArray(function (err, result) {
-            if (err) throw err;
+function getStorage(res, params) {
+    validate(params.token, params.access).then(result => {
+        if (result) {
+            console.log("requested storage");
+            var query = {};
+            MongoClient.connect(url, function (err, db) {
+                if (err) throw err;
+                var dbo = db.db("Storage");
+                dbo.collection("goods").find(query).toArray(function (err, result) {
+                    if (err) throw err;
 
-            res.writeHead(200, {
+                    res.writeHead(200, {
+                        'Content-Type': 'text/html'
+                    });
+                    res.write(JSON.stringify(result));
+
+                    db.close();
+                    return res.end();
+                });
+            });
+        } else {
+            res.writeHead(405, {
                 'Content-Type': 'text/html'
             });
-            res.write(JSON.stringify(result));
-
-            db.close();
-            return res.end();
-        });
+            res.write("Invalid user token, try to log in!");
+            res.end();
+        }
     });
 }
 
-function getEmpty(res) {
-    console.log("requested empty");
-    var query = {
-        quant: 0
-    };
-    MongoClient.connect(url, function (err, db) {
-        if (err) throw err;
-        var dbo = db.db("Storage");
-        dbo.collection("goods").find(query).toArray(function (err, result) {
-            if (err) throw err;
+function getEmpty(res, params) {
+    validate(params.token, params.access).then(result => {
+        if (result) {
+            console.log("requested empty");
+            var query = {
+                quant: 0
+            };
+            MongoClient.connect(url, function (err, db) {
+                if (err) throw err;
+                var dbo = db.db("Storage");
+                dbo.collection("goods").find(query).toArray(function (err, result) {
+                    if (err) throw err;
 
-            res.writeHead(200, {
+                    res.writeHead(200, {
+                        'Content-Type': 'text/html'
+                    });
+                    res.write(JSON.stringify(result));
+
+                    db.close();
+                    return res.end();
+                });
+            });
+        } else {
+            res.writeHead(405, {
                 'Content-Type': 'text/html'
             });
-            res.write(JSON.stringify(result));
-
-            db.close();
-            return res.end();
-        });
+            res.write("Invalid user token, try to log in!");
+            res.end();
+        }
     });
 }
 
-async function validate() {
+async function validate(tok, acc) {
+    if (!tok) {
+        tok = token;
+        acc = access;
+    }
     if (!validating) {
         return true;
     }
     try {
-        const response = await axios.get(validateUrl + "?token=" + token);
+        const response = await axios.get(validateUrl + "?token=" + tok + "&access=" + acc);
         return (response.data == "Access Granted");
     } catch (error) {
         console.log(error.response.body);
