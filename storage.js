@@ -234,10 +234,10 @@ function getEmpty(res, params) {
 }
 
 async function validate(tok, acc) {
-    if (!tok) {
+    if (!tok)
         tok = token;
+    if (!acc)
         acc = access;
-    }
     if (!validating) {
         return true;
     }
