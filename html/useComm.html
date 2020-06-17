@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Use an item</h2>
+
+
+<form action="storage.html">
+    <input type="submit" value="Back to main storage" />
+</form>
+<p>name</p>
+<input type="text" id="cName" value="">
+<p>quant</p>
+<input type="text" id="cQuant" value="">
+<br>
+<button onclick="myFunction()">Use</button>
+
+<p id="demo"></p>
+
+<script>
+function myFunction(){
+var obj, dbParam, xmlhttp, myObj, x, txt = "";
+obj = { table: "customers", limit: 20 };
+dbParam = JSON.stringify(obj);
+xmlhttp = new XMLHttpRequest();
+xmlhttp.onreadystatechange = function() {
+  if (this.readyState == 4 && this.status == 200) {
+    console.log(this.responseText);
+    document.getElementById("demo").innerHTML = this.responseText;
+  }
+};
+//{"refill":[{"name":"hamm","quant":5},{"name":"tomato","quant":3}]}
+const Http = new XMLHttpRequest();
+const urlEnd = 'name=' + document.getElementById("cName").value + '&quant=' + document.getElementById("cQuant").value;
+const url='http://apollo.xannosz.cloud:8880/useComm?' + urlEnd;
+xmlhttp.open("GET", url);
+xmlhttp.send();
+}
+</script>
+
+</body>
+</html>
